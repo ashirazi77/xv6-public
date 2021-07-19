@@ -7,67 +7,81 @@
 #include "mmu.h"
 #include "proc.h"
 
-int
-sys_fork(void)
+int sys_fork(void)
 {
   return fork();
 }
 
-int
-sys_exit(void)
+int sys_exit(void)
 {
-  exit();
-  return 0;  // not reached
+  int statusExit;
+  argint(0, &statusExit); //passing in the int status using call by reference
+  exit(statusExit);
+  return 0; // not reached
 }
 
-int
-sys_wait(void)
+int sys_wait(void)
 {
-  return wait();
+  int *statusWait; //passing in pointer for statuswait
+  argptr(0, (void *)&statusWait, sizeof(*statusWait));
+  return wait(statusWait);
+  ;
 }
+int sys_waitpid(void)
+{
+  int pid, options;
+  int *statusWait;
 
-int
-sys_kill(void)
+  if (argint(0, &pid) < 0) //passing int pid
+    return -1;
+
+  argptr(1, (void *)&statusWait, sizeof(statusWait)); //passing int *statusWait
+
+  if (argint(2, &options) < 0) //passing int options
+    return -1;
+
+  return waitpid(pid, statusWait, options);
+}
+int sys_kill(void)
 {
   int pid;
 
-  if(argint(0, &pid) < 0)
+  if (argint(0, &pid) < 0)
     return -1;
   return kill(pid);
 }
 
-int
-sys_getpid(void)
+int sys_getpid(void)
 {
   return myproc()->pid;
 }
 
-int
-sys_sbrk(void)
+int sys_sbrk(void)
 {
   int addr;
   int n;
 
-  if(argint(0, &n) < 0)
+  if (argint(0, &n) < 0)
     return -1;
   addr = myproc()->sz;
-  if(growproc(n) < 0)
+  if (growproc(n) < 0)
     return -1;
   return addr;
 }
 
-int
-sys_sleep(void)
+int sys_sleep(void)
 {
   int n;
   uint ticks0;
 
-  if(argint(0, &n) < 0)
+  if (argint(0, &n) < 0)
     return -1;
   acquire(&tickslock);
   ticks0 = ticks;
-  while(ticks - ticks0 < n){
-    if(myproc()->killed){
+  while (ticks - ticks0 < n)
+  {
+    if (myproc()->killed)
+    {
       release(&tickslock);
       return -1;
     }
@@ -79,8 +93,7 @@ sys_sleep(void)
 
 // return how many clock tick interrupts have occurred
 // since start.
-int
-sys_uptime(void)
+int sys_uptime(void)
 {
   uint xticks;
 
