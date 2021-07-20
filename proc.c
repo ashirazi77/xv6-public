@@ -230,7 +230,7 @@ int fork(void)
 // An exited process remains in the zombie state
 // until its parent calls wait() to find out it exited.
 void //changing void exit() to void exit(int status)
-    exit(status)
+exit(status)
 {
   struct proc *curproc = myproc();
   struct proc *p;
@@ -249,6 +249,7 @@ void //changing void exit() to void exit(int status)
     }
   }
 
+  curproc->status = status;
   begin_op();
   iput(curproc->cwd);
   end_op();
@@ -271,14 +272,13 @@ void //changing void exit() to void exit(int status)
   }
 
   // Jump into the scheduler, never to return.
-  //   curproc->state = ZOMBIE;
-  //   sched();
-  //   panic("zombie exit");
-  // }
-  curproc->status = status;
+    curproc->state = ZOMBIE;
+    sched();
+    panic("zombie exit");
+  }
 
-  // Wait for a child process to exit and return its pid.
-  // Return -1 if this process has no children.
+// Wait for a child process to exit and return its pid.
+// Return -1 if this process has no children.
   int wait(int *status) //passing int *status in order to prevent the proc from executing until all childs are terminated,
                         // this is also for saving the status of the child
   {
@@ -308,6 +308,10 @@ void //changing void exit() to void exit(int status)
           p->name[0] = 0;
           p->killed = 0;
           p->state = UNUSED;
+          if(status)
+          {
+            *status = p->status;
+          }
           release(&ptable.lock);
           return pid;
         }
@@ -484,9 +488,9 @@ void //changing void exit() to void exit(int status)
 
   // Atomically release lock and sleep on chan.
   // Reacquires lock when awakened.
-  void
-  sleep(void *chan, struct spinlock *lk)
-  {
+void
+sleep(void *chan, struct spinlock *lk)
+{
     struct proc *p = myproc();
 
     if (p == 0)
@@ -521,20 +525,24 @@ void //changing void exit() to void exit(int status)
       release(&ptable.lock);
       acquire(lk);
     }
-  }
+}
 
-  //PAGEBREAK!
-  // Wake up all processes sleeping on chan.
-  // The ptable lock must be held.
-  static void
-  wakeup1(void *chan)
+//PAGEBREAK!
+// Wake up all processes sleeping on chan.
+// The ptable lock must be held.
+static void 
+wakeup1(void *chan)
+{
+  struct proc *p;
+
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
   {
-    struct proc *p;
-
-    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-      if (p->state == SLEEPING && p->chan == chan)
-        p->state = RUNNABLE;
+    if (p->state == SLEEPING && p->chan == chan)
+    {
+      p->state = RUNNABLE;
+    }
   }
+}
 
   // Wake up all processes sleeping on chan.
   void
@@ -582,14 +590,14 @@ void //changing void exit() to void exit(int status)
         [SLEEPING] "sleep ",
         [RUNNABLE] "runble",
         [RUNNING] "run   ",
-        [ZOMBIE] "zombie"};
+        [ZOMBIE] "zombie"
+        };
     int i;
     struct proc *p;
     char *state;
     uint pc[10];
 
-    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    {
+    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
       if (p->state == UNUSED)
         continue;
       if (p->state >= 0 && p->state < NELEM(states) && states[p->state])
@@ -597,8 +605,7 @@ void //changing void exit() to void exit(int status)
       else
         state = "???";
       cprintf("%d %s %s", p->pid, state, p->name);
-      if (p->state == SLEEPING)
-      {
+      if (p->state == SLEEPING) {
         getcallerpcs((uint *)p->context->ebp + 2, pc);
         for (i = 0; i < 10 && pc[i] != 0; i++)
           cprintf(" %p", pc[i]);
