@@ -19,7 +19,17 @@ exec(char *path, char **argv)
   pde_t *pgdir, *oldpgdir;
   struct proc *curproc = myproc();
 
+  //**************
+  //Lab2 Additions
+  curproc->burst = 0;
+
   begin_op();
+
+  acquire(&tickslock);
+  curproc->arrive = ticks;
+  release(&tickslock);
+  //**************
+
 
   if((ip = namei(path)) == 0){
     end_op();

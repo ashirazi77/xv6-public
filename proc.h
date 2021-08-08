@@ -61,6 +61,11 @@ struct proc
   struct inode *cwd;          // Current directory
   char name[16];              // Process name (debugging)
   int status;                 // Saving the exit staus of the process that is terminated
+
+  //Lab 2 tracking
+  int priority;
+  int arrive; //simulated arrive time
+  int burst;
 };
 
 // Process memory is laid out contiguously, low addresses first:

@@ -7,6 +7,18 @@
 #include "mmu.h"
 #include "proc.h"
 
+//*****************
+//Lab2 sys_priority
+int sys_setpriority(void)
+{
+  int priority;
+  argint(0,&priority);
+  setpriority(priority);
+  return 0;
+}
+//*****************
+
+
 int sys_fork(void)
 {
   return fork();

@@ -91,6 +91,12 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
 
+  //******************
+  //Lab2 added tracker
+  p->priority = 15;
+  //******************
+
+
   release(&ptable.lock);
 
   // Allocate kernel stack.
@@ -117,6 +123,23 @@ found:
 
   return p;
 }
+
+//******************
+//Lab2 Function
+//******************
+void setpriority(int p)
+{
+  struct proc *curproc = myproc();
+  if(p < 0)
+    p = 0;
+  else if (p > 31)
+    p = 31;
+
+  curproc->priority = p;
+  cprintf("Prio for proc %s with PID %d is set to %d\n\n", curproc->name, curproc->pid, curproc->priority);
+  yield();
+}
+//******************
 
 //PAGEBREAK: 32
 // Set up first user process.
@@ -238,6 +261,22 @@ void //changing void exit() to void exit(int status)
 
   if (curproc == initproc)
     panic("init exiting");
+
+//**************
+//Lab2 Additions
+acquire(&tickslock);
+int end = ticks;
+release(&tickslock);
+int turnaround = end - curproc->arrive;
+int waitTime = turnaround - curproc->burst;
+
+
+cprintf("Process name is %s and has PID %d with a priority of %d\n",curproc->name, curproc->pid, curproc->priority);
+cprintf("Turnaround time for %s is end (%d) minus start (%d): %d\n",curproc->name, end, curproc->arrive, turnaround);
+cprintf("Wait time for %s is turnaround (%d) minus burst (%d): %d \n\n",curproc->name, turnaround, curproc->burst, waitTime);
+//**************
+
+
 
   // Close all open files.
   for (fd = 0; fd < NOFILE; fd++)
@@ -392,6 +431,10 @@ void scheduler(void)
   struct cpu *c = mycpu();
   c->proc = 0;
 
+  //******************
+  //Lab 2 max tracker
+  int max = 31;
+  //******************
   for (;;)
   {
     // Enable interrupts on this processor.
@@ -404,12 +447,27 @@ void scheduler(void)
       if (p->state != RUNNABLE)
         continue;
 
+      
+      //******************
+      //Lab2 Make sure highest prio
+      if (max > p->priority)
+        max = p->priority;
+      //******************
+    }
+        //Double Check this ****
+        //Compare w/ OG
+    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+    { 
+      if (p->state != RUNNABLE)
+        continue;
+      if (p->priority == max) {
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;
+      p->burst += 1; //traking burst
 
       swtch(&(c->scheduler), p->context);
       switchkvm();
@@ -417,6 +475,10 @@ void scheduler(void)
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       c->proc = 0;
+      }
+      else{
+        p->priority--;
+      }
     }
     release(&ptable.lock);
   }
