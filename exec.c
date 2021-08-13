@@ -22,9 +22,7 @@ exec(char *path, char **argv)
   //**************
   //Lab2 Additions
   curproc->burst = 0;
-
   begin_op();
-
   acquire(&tickslock);
   curproc->arrive = ticks;
   release(&tickslock);

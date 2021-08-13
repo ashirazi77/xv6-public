@@ -121,7 +121,7 @@ int wait(int *); //changing from (void) to (int*)
 void wakeup(void *);
 void yield(void);
 int waitpid(int, int *, int); //adding system call definition for waitpid
-void setpriority(int);
+void setpriority(int); //Lab2
 // swtch.S
 void swtch(struct context **, struct context *);
 

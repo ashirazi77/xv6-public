@@ -92,7 +92,7 @@ found:
   p->pid = nextpid++;
 
   //******************
-  //Lab2 added tracker
+  //Lab2 default priority
   p->priority = 15;
   //******************
 
@@ -127,16 +127,15 @@ found:
 //******************
 //Lab2 Function
 //******************
-void setpriority(int p)
-{
+void setpriority(int p){
   struct proc *curproc = myproc();
-  if(p < 0)
+  if(p < 0){
     p = 0;
-  else if (p > 31)
+  }
+  if (p > 31){
     p = 31;
-
+  }
   curproc->priority = p;
-  cprintf("Prio for proc %s with PID %d is set to %d\n\n", curproc->name, curproc->pid, curproc->priority);
   yield();
 }
 //******************
@@ -265,15 +264,17 @@ void //changing void exit() to void exit(int status)
 //**************
 //Lab2 Additions
 acquire(&tickslock);
-int end = ticks;
+int finishTime = ticks;
 release(&tickslock);
-int turnaround = end - curproc->arrive;
-int waitTime = turnaround - curproc->burst;
+int turnaround = finishTime - curproc->arrive; //or Wait + burst
+int waitTime = turnaround - curproc->burst; //Finish time - burst
 
-
-cprintf("Process name is %s and has PID %d with a priority of %d\n",curproc->name, curproc->pid, curproc->priority);
-cprintf("Turnaround time for %s is end (%d) minus start (%d): %d\n",curproc->name, end, curproc->arrive, turnaround);
-cprintf("Wait time for %s is turnaround (%d) minus burst (%d): %d \n\n",curproc->name, turnaround, curproc->burst, waitTime);
+cprintf("Process : %s - PID %d - Priority %d\n", curproc->name, curproc->pid, curproc->priority);
+cprintf("Arrive Time = %d\n", curproc->arrive);
+cprintf("Burst Time = %d\n", curproc->burst);
+cprintf("Wait Time = %d \n", waitTime);
+cprintf("Finish Time = %d\n", finishTime);
+cprintf("Turnaround Time = %d\n\n", turnaround);
 //**************
 
 
@@ -433,7 +434,7 @@ void scheduler(void)
 
   //******************
   //Lab 2 max tracker
-  int max = 31;
+  int priorityCheck = 31;
   //******************
   for (;;)
   {
@@ -450,24 +451,24 @@ void scheduler(void)
       
       //******************
       //Lab2 Make sure highest prio
-      if (max > p->priority)
-        max = p->priority;
+      if (priorityCheck > p->priority)
+        priorityCheck = p->priority;
       //******************
     }
-        //Double Check this ****
-        //Compare w/ OG
+
+
     for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     { 
       if (p->state != RUNNABLE)
         continue;
-      if (p->priority == max) {
+      if (p->priority == priorityCheck) {
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;
-      p->burst += 1; //traking burst
+      p->burst++; //incrementing burst time
 
       swtch(&(c->scheduler), p->context);
       switchkvm();
@@ -475,10 +476,13 @@ void scheduler(void)
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       c->proc = 0;
+      p->priority++; //Lab2 increase prio after running
       }
+
       else{
-        p->priority--;
+        p->priority--; //raising priority
       }
+      
     }
     release(&ptable.lock);
   }

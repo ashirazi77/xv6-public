@@ -9,8 +9,7 @@
 
 //*****************
 //Lab2 sys_priority
-int sys_setpriority(void)
-{
+int sys_setpriority(void){
   int priority;
   argint(0,&priority);
   setpriority(priority);
